@@ -1,0 +1,30 @@
+#!/bin/sh
+rm output/image/system.img
+./bin/make_ext4fs -s -l 2147483648 -a system output/image/system.img output/system/
+if [ -e output/image/system.img ]
+then
+    if [ $# -eq 1 ]
+    then
+        sync
+        echo "Converting back system.img to system.PARTITION..."
+        rm -f output/image/system.PARTITION
+        mv output/image/system.img output/image/system.PARTITION
+
+        echo "Repacking logo..."
+        rm -f output/image/logo.PARTITION
+        bin/logo_img_packer -r output/logo output/image/logo.PARTITION
+        
+
+        echo "Packing image to $1..."
+        bin/aml_image_v2_packer -r output/image/image.cfg output/image $1
+
+	sync
+
+        echo "Done"
+    else
+        echo "Usage: repack [output image]"
+    fi
+else
+    echo "Please unpack an image before trying to repack it"
+fi
+

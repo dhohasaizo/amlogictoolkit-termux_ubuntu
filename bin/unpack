@@ -1,0 +1,47 @@
+#!/bin/sh
+
+if [ -e bin/simg2img ]
+then
+    if [ $# -eq 1 ]
+    then
+	if [ -e $1 ]
+	then
+            echo "Cleaning up..."
+            rm -rf output
+            mkdir -p output/image
+            mkdir -p output/logo
+            mkdir -p output/system_out
+
+            echo "Unpacking image $1..."
+            bin/aml_image_v2_packer -d $1 output/image
+       
+            echo "Converting system.PARTITION to system.img..."
+            bin/simg2img output/image/system.PARTITION output/image/system.img
+
+            echo "Mounting system image..."
+            test -f output/image/system.img
+            mknod /dev/block/loop9 b 7 9
+            losetup /dev/block/loop9 output/image/system.img
+            mount -t ext4 /dev/block/loop9 output/system_out/
+            test -d ./output/system && rm -rf ./output/system; mkdir ./output/system
+            cp -r ./output/system_out/. ./output/system/.
+            chown -R $USER:$USER ./output/system
+            umount ./output/system_out
+            rm -r ./output/system_out
+            losetup -d /dev/block/loop9
+            rm /dev/block/loop9
+            echo "Completed!! system.img extracted to ./system "
+
+            echo "Unpacking logo..."
+            bin/logo_img_packer -d output/image/logo.PARTITION output/logo
+
+            echo "Done"
+        else
+            echo "File not found: $1"
+        fi
+    else
+        echo "Usage: unpack [input image]"
+    fi
+else
+    echo "Please run the build script before using this tool"
+fi
